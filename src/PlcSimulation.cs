@@ -28,6 +28,7 @@ namespace OpcPlc
         public static bool AddSpecialCharName { get; set; }
         public static bool AddLongId { get; set; }
         public static bool AddLongStringNodes { get; set; }
+        public static bool AddSimpleEvent { get; set; }
 
         /// <summary>
         /// Simulation data.
@@ -94,6 +95,11 @@ namespace OpcPlc
                 _boiler1Generator = new Timer(_plcServer.PlcNodeManager.UpdateBoiler1, null, 0, period: 1000);
             }
 
+            if(AddSimpleEvent)
+            {
+                _simpleEventGenerator = new Timer(_plcServer.PlcNodeManager.UpdateSimpleEvent, null, 3000, period: 3000);
+            }
+
             if (AddSpecialCharName)
             {
                 _plcServer.PlcNodeManager.SpecialCharNameNode.Start(value => value + 1, periodMs: 1000);
@@ -133,6 +139,7 @@ namespace OpcPlc
             _slowNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _fastNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _boiler1Generator?.Change(Timeout.Infinite, Timeout.Infinite);
+            _simpleEventGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
         /// <summary>
@@ -351,5 +358,7 @@ namespace OpcPlc
         private Timer _fastNodeGenerator;
 
         private Timer _boiler1Generator;
+
+        private Timer _simpleEventGenerator;
     }
 }

@@ -19,5 +19,10 @@ namespace OpcPlc
         /// The namespace for the nodes provided by the plc server.
         /// </summary>
         public const string OpcPlcApplications = "http://microsoft.com/Opc/OpcPlc/";
+
+        /// <summary>
+        /// The namespace for the nodes provided by for simpleevent type
+        /// </summary>
+        public const string OpcPlcSimpleEvent = "http://microsoft.com/Opc/OpcPlc/SimpleEvent";
     }
 }

@@ -40,7 +40,7 @@ namespace OpcPlc
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
-            : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
+            : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, Namespaces.OpcPlcSimpleEvent })
         {
             _nodeFileName = nodeFileName;
             SystemContext.NodeIdFactory = this;
@@ -114,6 +114,48 @@ namespace OpcPlc
             _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
         }
 
+        public void UpdateSimpleEvent(object state)
+        {
+            try
+            {
+                for (int ii = 1; ii < 3; ii++)
+                {
+                    // construct translation object with default text.
+                    TranslationInfo info = new TranslationInfo(
+                        "SystemCycleStarted",
+                        "en-US",
+                        "The system cycle '{0}' has started.",
+                        _simpleEvent_CycleTime++);
+
+                    // construct the event.
+                    SimpleEventModel.SystemCycleStartedEventState e = new SimpleEventModel.SystemCycleStartedEventState(null);
+
+                    e.Initialize(
+                        SystemContext,
+                        null,
+                        (EventSeverity)ii,
+                        new LocalizedText(info));
+
+                    e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", false);
+                    e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, false);
+                    e.SetChildValue(SystemContext, new QualifiedName(SimpleEventModel.BrowseNames.CycleId, NamespaceIndex), _simpleEvent_CycleTime.ToString(), false);
+
+                    SimpleEventModel.CycleStepDataType step = new SimpleEventModel.CycleStepDataType();
+                    step.Name = "Step 1";
+                    step.Duration = 1000;
+
+                    e.SetChildValue(SystemContext, new QualifiedName(SimpleEventModel.BrowseNames.CurrentStep, NamespaceIndex), step, false);
+                    e.SetChildValue(SystemContext, new QualifiedName(SimpleEventModel.BrowseNames.Steps, NamespaceIndex), new SimpleEventModel.CycleStepDataType[] { step, step }, false);
+
+                    Server.ReportEvent(e);
+                }
+            }
+            catch (Exception e)
+            {
+                Utils.Trace(e, "Unexpected error during simulation.");
+            }
+        }
+
         /// <summary>
         /// Creates the NodeId for the specified node.
         /// </summary>
@@ -169,7 +211,11 @@ namespace OpcPlc
 
                     AddUserConfigurableNodes(root);
 
+                    LoadPredefinedNodes(SystemContext, externalReferences);
+
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
+
+                    AddSimpleEvent();
 
                     AddSpecialNodes(dataFolder);
                 }
@@ -180,6 +226,12 @@ namespace OpcPlc
 
                 AddPredefinedNode(SystemContext, root);
             }
+        }
+
+        private void AddSimpleEvent()
+        {
+            if(PlcSimulation.AddSimpleEvent)
+            { }
         }
 
         private void AddSpecialNodes(FolderState dataFolder)
@@ -260,7 +312,7 @@ namespace OpcPlc
             if (PlcSimulation.AddComplexTypeBoiler)
             {
                 // Load complex types from binary uanodes file.
-                base.LoadPredefinedNodes(SystemContext, externalReferences);
+                //base.LoadPredefinedNodes(SystemContext, externalReferences);
 
                 // Find the Boiler1 node that was created when the model was loaded.
                 var passiveNode = (BaseObjectState)FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
@@ -585,11 +637,20 @@ namespace OpcPlc
         {
             var predefinedNodes = new NodeStateCollection();
 
-            predefinedNodes.LoadFromBinaryResource(context,
-                "Boiler/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
-                typeof(PlcNodeManager).GetTypeInfo().Assembly,
-                updateTables: true);
-
+            if (PlcSimulation.AddComplexTypeBoiler)
+            {
+                predefinedNodes.LoadFromBinaryResource(context,
+                    "Boiler/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+                    typeof(PlcNodeManager).GetTypeInfo().Assembly,
+                    updateTables: true);
+            }
+            if (PlcSimulation.AddSimpleEvent)
+            {
+                predefinedNodes.LoadFromBinaryResource(context,
+                    "SimpleEvent/SimpleEventModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+                    typeof(PlcNodeManager).GetTypeInfo().Assembly,
+                    updateTables: true);
+            }
             return predefinedNodes;
         }
 
@@ -871,6 +932,7 @@ namespace OpcPlc
         protected BoilerModel.BoilerState _boiler1 = null;
         protected BaseDataVariableState[] _slowBadNodes = null;
         protected BaseDataVariableState[] _fastBadNodes = null;
+        protected int _simpleEvent_CycleTime;
 
         /// <summary>
         /// File name for user configurable nodes.
