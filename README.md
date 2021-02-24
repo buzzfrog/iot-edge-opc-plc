@@ -131,6 +131,11 @@ Features:
 - When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
 - Pressure is calculated as 100000 + bottom temperature
 
+## SimpleEvents
+The option --se adds a simple event simulation to the address space.
+
+It will emit events from the Server node.
+
 ## Other features
  
 - Node with special characters in name: `--scn`
