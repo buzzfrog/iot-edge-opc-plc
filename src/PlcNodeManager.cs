@@ -113,8 +113,9 @@ namespace OpcPlc
             _boiler1.BoilerStatus.Value = newValue;
             _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
         }
-
+#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateSimpleEvent(object state)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             try
             {
